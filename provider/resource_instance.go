@@ -1553,12 +1553,18 @@ func convertToV1DataSource(raw interface{}) (*v1pb.DataSource, error) {
 				}
 			} else if v, ok := rawVault["app_role"].([]interface{}); ok && len(v) == 1 {
 				rawAppRole := v[0].(map[string]interface{})
+				// role_id and secret are absent when the data source is flattened from an
+				// API response without prior state (for example a bytebase_database read):
+				// the API never returns the secret.
+				roleID, _ := rawAppRole["role_id"].(string)
+				secretID, _ := rawAppRole["secret"].(string)
+				secretType, _ := rawAppRole["secret_type"].(string)
 				externalSecret.AuthType = v1pb.DataSourceExternalSecret_VAULT_APP_ROLE
 				externalSecret.AuthOption = &v1pb.DataSourceExternalSecret_AppRole{
 					AppRole: &v1pb.DataSourceExternalSecret_AppRoleAuthOption{
-						RoleId:   rawAppRole["role_id"].(string),
-						SecretId: rawAppRole["secret"].(string),
-						Type:     v1pb.DataSourceExternalSecret_AppRoleAuthOption_SecretType(v1pb.DataSourceExternalSecret_AppRoleAuthOption_SecretType_value[rawAppRole["secret_type"].(string)]),
+						RoleId:   roleID,
+						SecretId: secretID,
+						Type:     v1pb.DataSourceExternalSecret_AppRoleAuthOption_SecretType(v1pb.DataSourceExternalSecret_AppRoleAuthOption_SecretType_value[secretType]),
 					},
 				}
 			} else {
